@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Gemini Engineer
+Setup script for PUding Agent
 """
 
 from setuptools import setup, find_packages
@@ -8,16 +8,16 @@ from pathlib import Path
 
 # Read the README file
 this_directory = Path(__file__).parent
-long_description = (this_directory / "README.md").read_text()
+long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
-    name="gemini-engineer",
+    name="puding-agent",
     version="1.0.0",
-    author="Gemini Engineer Team",
+    author="ZXL Software Engineer Agent Team",
     description="AI-driven terminal application for software engineering assistance",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/gemini-engineer",
+    url="https://github.com/yourusername/puding-agent",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -33,20 +33,22 @@ setup(
     ],
     python_requires=">=3.11",
     install_requires=[
-        "google-generativeai>=0.3.0",
+        "google-generativeai>=0.8.4",
         "rich>=13.0.0",
         "prompt_toolkit>=3.0.0",
         "pydantic>=2.0.0",
         "python-dotenv>=1.0.0",
+        "openai>=1.0.0",
+        "flask>=2.2.0",
     ],
     entry_points={
         "console_scripts": [
-            "gemini-engineer=main:main",
+            "puding-agent=puding_agent.cli:main",
         ],
     },
-    keywords="ai, coding, assistant, gemini, terminal, cli",
+    keywords="ai, coding, assistant, gemini, terminal, cli, web",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/gemini-engineer/issues",
-        "Source": "https://github.com/yourusername/gemini-engineer",
+        "Bug Reports": "https://github.com/yourusername/puding-agent/issues",
+        "Source": "https://github.com/yourusername/puding-agent",
     },
-) 
+)

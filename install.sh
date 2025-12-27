@@ -1,9 +1,9 @@
 #!/bin/bash
-# Gemini Engineer Installation Script
+# PUding Agent Installation Script
 
 set -e  # Exit on any error
 
-echo "🤖 Setting up Gemini Engineer..."
+echo "🤖 Setting up PUding Agent..."
 
 # Check Python version
 python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+')
@@ -30,6 +30,7 @@ source venv/bin/activate
 echo "📥 Installing dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
+pip install -e .
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
@@ -51,6 +52,6 @@ echo ""
 echo "To get started:"
 echo "1. Edit .env and add your Gemini API key"
 echo "2. Run: source venv/bin/activate"
-echo "3. Run: python main.py"
+echo "3. Run: python run_cli.py"
 echo ""
 echo "Or simply run: ./run.sh" 

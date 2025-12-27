@@ -1,179 +1,125 @@
-![gemini-banner.png](public/gemini-banner.png)
+![banner](public/gemini-banner.png)
 
-# 🤖 Gemini Engineer
+# 🤖 PUding Agent (AI Software Engineer)
 
-An interactive, AI-driven terminal application that acts as a software engineering assistant, leveraging Google's Gemini API with function calling capabilities to perform file system operations and provide intelligent coding assistance.
+一个交互式、可调用本地工具的 AI 编程助手。它支持通过 LLM（DeepSeek/OpenAI/Qwen/Gemini）进行需求理解、代码生成、测试执行、文件读写与编辑、命令运行等操作，并提供 CLI 和 Web 两种交互界面。
 
-## ✨ Features
+**核心目标**
+- 在一个安全可控的工作目录内，借助 AI 自动化完成编码任务
+- 通过“函数调用”桥接 AI 与本地文件系统/命令行
+- 支持多种主流模型与 OpenAI 兼容接口
 
-- **AI-Powered Coding Assistant**: Support for Google Gemini and OpenAI-compatible models (DeepSeek, Qwen, etc.)
-- **File System Operations**: Read, create, edit, and manage files through AI function calls
-- **Command Execution**: Run shell commands, tests, and scripts directly
-- **Interactive Terminal Interface**: Beautiful, feature-rich terminal UI with Rich and prompt_toolkit
-- **Function Calling**: Seamless integration between AI reasoning and local file operations
-- **Context Management**: Add files and directories to conversation context for better assistance
-- **Streaming Responses**: Real-time AI responses with visual feedback
+## ✨ 功能特性
+- **多端支持**：提供命令行 (CLI) 和 Web 界面
+- **模型接入**：DeepSeek/OpenAI/Qwen（通过兼容接口），Google Gemini
+- **文件操作**：读取、创建、批量创建、编辑、目录列出
+- **命令执行**：运行脚本、测试、构建等命令
+- **流式输出**：实时展示 LLM 的响应与工具调用
+- **上下文管理**：将文件/目录加入对话上下文以便更精准的代码分析
+- **安全限制**：路径校验、最大文件大小限制、二进制文件自动跳过
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Python 3.11 or higher
-- Google Gemini API key OR OpenAI/DeepSeek API key
-
-### Installation
-
-1. **Clone or download the project**:
-   ```bash
-   cd gemini-engineer
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set up your API key**:
-   Create a `.env` file in the project directory:
-   
-   **For Google Gemini:**
-   ```bash
-   GEMINI_API_KEY=your_gemini_api_key
-   ```
-   
-   **For DeepSeek / Qwen / OpenAI:**
-   ```bash
-   LLM_PROVIDER=openai
-   OPENAI_API_KEY=your_api_key
-   OPENAI_BASE_URL=https://api.deepseek.com/v1  # Example for DeepSeek
-   OPENAI_MODEL=deepseek-coder
-   ```
-
-4. **Run the application**:
-   ```bash
-   python main.py
-   ```
-
-## 🛠️ Available AI Tools
-
-The AI assistant has access to the following file system tools:
-
-### `run_command(command)`
-Run shell commands to execute code, run tests, or install dependencies.
-
-### `read_file(file_path)`
-Read the content of a single file.
-
-### `read_multiple_files(file_paths)`
-Read the contents of multiple files at once.
-
-### `create_file(file_path, content)`
-Create a new file or overwrite an existing one.
-
-### `create_multiple_files(files)`
-Create multiple files simultaneously.
-
-### `edit_file(file_path, original_snippet, new_snippet)`
-Replace specific text snippets in files.
-
-### `list_directory(dir_path)`
-List the contents of a directory.
-
-## 🔒 Security Features
-
-- **Path Validation**: Prevents directory traversal attacks (`../`)
-- **File Size Limits**: Maximum file size of 1MB for reads/writes
-- **Binary File Detection**: Automatically skips binary files
-- **Working Directory Restriction**: Operations are confined to the current directory and subdirectories
-
-## 🏗️ Architecture
-
-### Core Components
-
-- **`GeminiEngineer`**: Main application class managing the interactive loop
-- **Tool Functions**: File system operations (`read_local_file`, `create_file`, etc.)
-- **Tool Schemas**: JSON schemas defining available tools for Gemini
-- **Safety Utilities**: Path normalization and file type validation
-- **Rich UI**: Terminal interface with panels, tables, and syntax highlighting
-
-### Technology Stack
-
-- **`google-generativeai`**: Gemini API integration
-- **`rich`**: Terminal UI and formatting
-- **`prompt_toolkit`**: Interactive command-line interface
-- **`pydantic`**: Data validation
-- **`python-dotenv`**: Environment variable management
-
-## 📝 Examples
-
-### Creating a Python Project
-
-```bash
-🤖 gemini-engineer> Create a simple Flask web application with a hello world endpoint
+## 🧱 项目结构
+```text
+ZXLSoftware-Engineer-Agent/
+├── puding_agent/           # [核心代码包]
+│   ├── agent.py            # AI 核心逻辑 (GeminiEngineer)
+│   ├── cli.py              # CLI 界面逻辑
+│   ├── tools.py            # 工具函数 (文件/命令操作)
+│   ├── utils.py            # 辅助工具
+│   └── config.py           # 配置与提示词
+├── static/                 # Web 静态资源
+├── templates/              # Web 模板
+├── run_cli.py              # CLI 启动入口
+├── web_ui.py               # Web 启动入口
+├── requirements.txt        # 依赖清单
+├── setup.py                # 安装配置
+├── install.sh              # Linux/macOS 安装脚本
+├── run.bat                 # Windows 启动脚本
+└── .env                    # 环境变量配置
 ```
 
-The AI will:
-1. Create the main Flask app file
-2. Set up requirements.txt
-3. Create a README with instructions
-4. Provide run instructions
+## 🚀 快速开始
 
-### Code Analysis
+### 前置要求
+- Python 3.11+
+- 有效的 API Key (Gemini, OpenAI, DeepSeek, 或 Qwen)
 
-```bash
-🤖 gemini-engineer> /add src/
-🤖 gemini-engineer> Analyze this codebase for potential bugs and security issues
+### 安装
+
+**Windows**
+```batch
+# 1. 创建并激活虚拟环境
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# 2. 安装依赖
+pip install -r requirements.txt
+pip install -e .
+
+# 3. 配置 .env
+cp env.example .env
+# 编辑 .env 填入 API Key
 ```
 
-### Refactoring Code
-
+**Linux/macOS**
 ```bash
-🤖 gemini-engineer> /add legacy_code.py
-🤖 gemini-engineer> Refactor this code to use modern Python best practices
+./install.sh
 ```
 
-## 🤝 Contributing
+### 运行
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+**方式 1：Web 界面 (推荐)**
+```bash
+# Windows 直接运行 run.bat
+./run.bat
 
-## 📄 License
+# 或者手动运行
+python web_ui.py
+```
+访问 http://127.0.0.1:5000/
 
-This project is open source and available under the [MIT License](LICENSE).
+**方式 2：命令行 (CLI)**
+```bash
+python run_cli.py
 
-## 🐛 Troubleshooting
+# 或者安装后直接使用命令
+puding-agent
+```
 
-### Common Issues
+## ⚙️ 配置说明 (.env)
+以下为不同提供商的典型配置方式：
 
-**API Key Error**: Make sure your `.env` file contains a valid Gemini API key.
+**DeepSeek（推荐）**
+- `LLM_PROVIDER=openai`
+- `OPENAI_BASE_URL=https://api.deepseek.com/v1`
+- `OPENAI_MODEL=deepseek-coder`
+- `OPENAI_API_KEY=你的_DeepSeek_API_Key`
 
-**Permission Errors**: Ensure you have write permissions in the current directory.
+**OpenAI**
+- `LLM_PROVIDER=openai`
+- `OPENAI_BASE_URL=https://api.openai.com/v1`
+- `OPENAI_MODEL=gpt-4o`
+- `OPENAI_API_KEY=你的_OpenAI_API_Key`
 
-**Import Errors**: Install all dependencies with `pip install -r requirements.txt`.
+**Gemini**
+- `LLM_PROVIDER=gemini`
+- `GEMINI_API_KEY=你的_Gemini_API_Key`
+- `GEMINI_MODEL=gemini-2.0-flash`
 
-**Binary File Warnings**: The tool automatically skips binary files for safety.
+## 🖥️ 交互用法 (CLI)
+- 启动后，命令行提示符为：`User >`
+- 可用指令：
+  - `/add <file_path>`：将指定文件加入上下文
+  - `/help`：显示帮助说明
+  - `/clear`：清空会话历史
+  - `/exit` 或 `/quit`：退出应用
 
-## 🔮 Future Enhancements
+## 🔧 工具能力
+- `run_command(command)`：运行命令
+- `read_file(file_path)`：读取文件
+- `create_file(file_path, content)`：创建/覆盖文件
+- `edit_file(file_path, old_str, new_str)`：内容替换
+- `list_directory(dir_path)`：列出目录
 
-- [ ] Support for more AI models (Claude, GPT-4, etc.)
-- [ ] Git integration for version control operations
-- [ ] Project templates and scaffolding
-- [ ] Code execution in sandboxed environments
-- [ ] Plugin system for custom tools
-- [ ] Web interface option
-- [ ] Team collaboration features
-
-## 📞 Support
-
-If you encounter any issues or have questions:
-
-1. Check the troubleshooting section above
-2. Review the existing issues on GitHub
-3. Create a new issue with detailed information about your problem
-
----
-
-**Happy coding with Gemini Engineer! 🚀** 
+## 📜 许可证
+MIT License
