@@ -18,6 +18,35 @@ class ConversationMessage:
     tool_call_id: Optional[str] = None      # ID for tool response
     name: Optional[str] = None              # Name of the tool
 
+def clean_json_string(json_str: str) -> str:
+    """Clean and fix common JSON formatting errors from LLM output."""
+    import re
+    
+    # Remove markdown code blocks if present
+    cleaned = json_str.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    if cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+        
+    cleaned = cleaned.strip()
+    
+    # Fix common syntax errors
+    cleaned = cleaned.replace("\n", " ")
+    cleaned = re.sub(r",\s*}", "}", cleaned)
+    cleaned = re.sub(r",\s*]", "]", cleaned)
+    # Be careful with replacing single quotes, only do it if it looks like a JSON key/value wrapper
+    # simplistic approach: replace all ' with " if it seems they are used as delimiters
+    # But this is risky for content containing '. 
+    # Better to rely on the model producing valid JSON, but we can fix Python-style None/True/False
+    cleaned = re.sub(r"\bNone\b", "null", cleaned)
+    cleaned = re.sub(r"\bTrue\b", "true", cleaned)
+    cleaned = re.sub(r"\bFalse\b", "false", cleaned)
+    
+    return cleaned
+
 def normalize_path(file_path: str) -> Path:
     """Normalize and validate file path to prevent directory traversal."""
     path = Path(file_path).resolve()

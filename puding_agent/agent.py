@@ -15,7 +15,7 @@ import openai
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-from .utils import ConversationMessage, normalize_path, should_exclude_file, is_text_file
+from .utils import ConversationMessage, normalize_path, should_exclude_file, is_text_file, clean_json_string
 from .config import SYSTEM_PROMPT
 from .tools import TOOLS, TOOL_FUNCTIONS, read_local_file
 
@@ -323,8 +323,7 @@ class GeminiEngineer:
                     except json.JSONDecodeError:
                         # Attempt simple fix
                         try:
-                            # Basic fix for common issues
-                            fixed = args_str.replace("'", '"')
+                            fixed = clean_json_string(args_str)
                             params = json.loads(fixed)
                         except:
                             params = {} # Fail gracefully

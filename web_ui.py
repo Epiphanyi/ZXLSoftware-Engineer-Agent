@@ -36,7 +36,11 @@ def api_send():
     
     try:
         logging.info("Calling engineer.respond_once...")
-        result = engineer.respond_once(text)
+        
+        def loop_callback(count):
+            logging.info(f"Engineer loop iteration: {count}")
+            
+        result = engineer.respond_once(text, on_loop_start=loop_callback)
         logging.info(f"respond_once result: {result}")
         
         if isinstance(result, dict) and result.get("error"):
