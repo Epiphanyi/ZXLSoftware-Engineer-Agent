@@ -1,9 +1,7 @@
-![banner](public/gemini-banner.png)
-
 # 🤖 PUding Agent (AI Software Engineer)
 
 一个交互式、可调用本地工具的 AI 编程助手。它支持通过 LLM（DeepSeek/OpenAI/Qwen/Gemini）进行需求理解、代码生成、测试执行、文件读写与编辑、命令运行等操作，并提供 CLI 和 Web 两种交互界面。
-
+GITHUB:https://github.com/Epiphanyi/ZXLSoftware-Engineer-Agent
 **核心目标**
 - 在一个安全可控的工作目录内，借助 AI 自动化完成编码任务
 - 通过“函数调用”桥接 AI 与本地文件系统/命令行
