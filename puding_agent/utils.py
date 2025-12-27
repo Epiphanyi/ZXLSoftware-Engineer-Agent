@@ -4,14 +4,19 @@ Utility functions for PUding Agent.
 """
 import mimetypes
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional, List, Any, Dict
 from .config import EXCLUDED_FILES, EXCLUDED_EXTENSIONS
 
 @dataclass
 class ConversationMessage:
     """Represents a message in the conversation history."""
-    role: str  # Can be 'user', 'assistant', 'system'
-    content: str  # Always a string for simplicity
+    role: str  # Can be 'user', 'assistant', 'system', 'tool'
+    content: str  # The text content
+    # For tool usage
+    tool_calls: Optional[List[Any]] = None  # List of tool calls from assistant
+    tool_call_id: Optional[str] = None      # ID for tool response
+    name: Optional[str] = None              # Name of the tool
 
 def normalize_path(file_path: str) -> Path:
     """Normalize and validate file path to prevent directory traversal."""

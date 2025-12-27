@@ -233,107 +233,215 @@ class GeminiEngineer:
                 border_style="green"
             ))
 
-    def respond_once(self, user_input: str) -> Dict[str, Any]:
-        """Process a single message and return the response (used by Web UI)."""
+    def respond_once(self, user_input: str, on_loop_start=None) -> Dict[str, Any]:
+        """
+        Process a message and run the autonomous loop (Reflection & Repair).
+        Returns aggregated text and tool executions.
+        
+        Args:
+            user_input: The user's message
+            on_loop_start: Optional callback function(iteration_count) called at start of each loop
+        """
         self.conversation_history.append(ConversationMessage("user", user_input))
-        if self.provider in ['openai', 'deepseek', 'qwen']:
-            messages = []
-            for msg in self.conversation_history:
-                if msg.role == "system":
-                    messages.append({"role": "system", "content": msg.content})
-                elif msg.role == "assistant":
-                    messages.append({"role": "assistant", "content": msg.content})
-                elif msg.role == "user":
-                    messages.append({"role": "user", "content": msg.content})
-            openai_tools = []
-            for tool in TOOLS:
-                openai_tools.append({"type": "function", "function": tool})
-            try:
-                resp = self.client.chat.completions.create(model=self.model_name, messages=messages, tools=openai_tools)
-            except Exception as e:
-                return {"error": str(e)}
-            choice = resp.choices[0]
-            assistant_text = choice.message.content or ""
-            self.conversation_history.append(ConversationMessage("assistant", assistant_text or ""))
-            executed = []
-            tcalls = getattr(choice.message, "tool_calls", None) or []
-            for tc in tcalls:
-                name = tc.function.name
-                args_str = tc.function.arguments or ""
-                params = {}
+        
+        aggregated_text = []
+        all_tool_executions = []
+        loop_count = 0
+        MAX_LOOPS = 10  # Prevent infinite loops
+        
+        while loop_count < MAX_LOOPS:
+            loop_count += 1
+            if on_loop_start:
                 try:
-                    params = json.loads(args_str)
-                except json.JSONDecodeError:
-                    # Attempt to fix common JSON errors in LLM output
-                    fixed = args_str.strip().replace("\n", " ")
-                    fixed = re.sub(r",\s*}", "}", fixed)
-                    fixed = re.sub(r",\s*]", "]", fixed)
-                    fixed = fixed.replace("'", "\"")
-                    fixed = re.sub(r"\bNone\b", "null", fixed)
-                    fixed = re.sub(r"\bTrue\b", "true", fixed)
-                    fixed = re.sub(r"\bFalse\b", "false", fixed)
-                    try:
-                        params = json.loads(fixed)
-                    except Exception:
-                        params = {}
-                result = self.execute_tool(name, params)
-                executed.append({"name": name, "parameters": params, "result": result})
-            return {"assistant_text": assistant_text, "tools_executed": executed}
-        else:
-            # Gemini implementation for respond_once
-            messages = []
-            for msg in self.conversation_history:
-                if msg.role == "system":
-                    messages.append({"role": "user", "parts": [msg.content]})
-                elif msg.role == "assistant":
-                    messages.append({"role": "model", "parts": [msg.content]})
-                elif msg.role == "user":
-                    messages.append({"role": "user", "parts": [msg.content]})
-            try:
-                resp = self.model.generate_content(messages, tools=[{"function_declarations": TOOLS}])
-            except Exception as e:
-                return {"error": str(e)}
+                    on_loop_start(loop_count)
+                except:
+                    pass
             
-            if hasattr(resp, "prompt_feedback") and resp.prompt_feedback:
-                if resp.prompt_feedback.block_reason:
-                    return {"error": f"Response blocked: {resp.prompt_feedback.block_reason}"}
+            if self.provider in ['openai', 'deepseek', 'qwen']:
+                # OpenAI Logic
+                messages = []
+                for msg in self.conversation_history:
+                    if msg.role == "system":
+                        messages.append({"role": "system", "content": msg.content})
+                    elif msg.role == "assistant":
+                        m = {"role": "assistant", "content": msg.content}
+                        if msg.tool_calls:
+                            m["tool_calls"] = msg.tool_calls
+                        messages.append(m)
+                    elif msg.role == "user":
+                        messages.append({"role": "user", "content": msg.content})
+                    elif msg.role == "tool":
+                        messages.append({
+                            "role": "tool", 
+                            "content": msg.content,
+                            "tool_call_id": msg.tool_call_id,
+                            "name": msg.name
+                        })
+                
+                openai_tools = []
+                for tool in TOOLS:
+                    openai_tools.append({"type": "function", "function": tool})
+                
+                try:
+                    resp = self.client.chat.completions.create(
+                        model=self.model_name, 
+                        messages=messages, 
+                        tools=openai_tools
+                    )
+                except Exception as e:
+                    return {"error": str(e), "assistant_text": "\n".join(aggregated_text)}
+                
+                choice = resp.choices[0]
+                assistant_msg = choice.message
+                content = assistant_msg.content or ""
+                tool_calls = getattr(assistant_msg, "tool_calls", None) or []
+                
+                # Append assistant response to history
+                # We need to store tool_calls in the message for OpenAI context
+                self.conversation_history.append(ConversationMessage(
+                    role="assistant", 
+                    content=content,
+                    tool_calls=tool_calls if tool_calls else None
+                ))
+                
+                if content:
+                    aggregated_text.append(content)
+                
+                if not tool_calls:
+                    # No tools called, we are done
+                    break
+                
+                # Execute tools
+                for tc in tool_calls:
+                    name = tc.function.name
+                    args_str = tc.function.arguments or ""
+                    call_id = tc.id
+                    
+                    params = {}
+                    try:
+                        params = json.loads(args_str)
+                    except json.JSONDecodeError:
+                        # Attempt simple fix
+                        try:
+                            # Basic fix for common issues
+                            fixed = args_str.replace("'", '"')
+                            params = json.loads(fixed)
+                        except:
+                            params = {} # Fail gracefully
+                            
+                    result = self.execute_tool(name, params)
+                    
+                    # Store execution for return
+                    all_tool_executions.append({
+                        "name": name, 
+                        "parameters": params, 
+                        "result": result
+                    })
+                    
+                    # Append tool result to history
+                    self.conversation_history.append(ConversationMessage(
+                        role="tool",
+                        content=json.dumps(result, ensure_ascii=False),
+                        tool_call_id=call_id,
+                        name=name
+                    ))
+                    
+            else:
+                # Gemini Logic
+                messages = []
+                for msg in self.conversation_history:
+                    if msg.role == "system":
+                        messages.append({"role": "user", "parts": [msg.content]})
+                    elif msg.role == "assistant":
+                        parts = []
+                        if msg.content:
+                            parts.append({"text": msg.content})
+                        if msg.tool_calls:
+                            # Reconstruct function calls for Gemini history
+                            for tc in msg.tool_calls:
+                                parts.append({"function_call": tc})
+                        messages.append({"role": "model", "parts": parts})
+                    elif msg.role == "user":
+                        messages.append({"role": "user", "parts": [msg.content]})
+                    elif msg.role == "tool":
+                        # Gemini expects function_response
+                        messages.append({
+                            "role": "function",
+                            "parts": [{
+                                "function_response": {
+                                    "name": msg.name,
+                                    "response": {"result": msg.content}
+                                }
+                            }]
+                        })
 
-            text_parts = []
-            tool_calls = []
-            if hasattr(resp, "candidates") and resp.candidates:
-                for candidate in resp.candidates:
-                    if hasattr(candidate, "content") and candidate.content:
-                        for part in candidate.content.parts:
-                            if hasattr(part, "function_call") and part.function_call:
-                                tool_calls.append(part.function_call)
-                            elif hasattr(part, "text") and part.text:
-                                text_parts.append(part.text)
-            assistant_text = "".join(text_parts)
-            self.conversation_history.append(ConversationMessage("assistant", assistant_text or ""))
-            executed = []
-            for fc in tool_calls:
-                name = fc.name
-                params = {}
-                if hasattr(fc, "args"):
-                    for key, value in fc.args.items():
-                        if hasattr(value, "string_value"):
-                            params[key] = value.string_value
-                        elif hasattr(value, "list_value"):
-                            items = []
-                            for item in value.list_value.values:
-                                if hasattr(item, "struct_value"):
-                                    sd = {}
-                                    for sk, sv in item.struct_value.fields.items():
-                                        if hasattr(sv, "string_value"):
-                                            sd[sk] = sv.string_value
-                                    items.append(sd)
-                            params[key] = items
-                        else:
-                            # Handle other types if necessary
-                             params[key] = value
-                result = self.execute_tool(name, params)
-                executed.append({"name": name, "parameters": params, "result": result})
-            return {"assistant_text": assistant_text, "tools_executed": executed}
+                try:
+                    resp = self.model.generate_content(messages, tools=[{"function_declarations": TOOLS}])
+                except Exception as e:
+                    return {"error": str(e), "assistant_text": "\n".join(aggregated_text)}
+                
+                if hasattr(resp, "prompt_feedback") and resp.prompt_feedback:
+                    if resp.prompt_feedback.block_reason:
+                        return {"error": f"Response blocked: {resp.prompt_feedback.block_reason}"}
+
+                text_parts = []
+                gemini_tool_calls = []
+                
+                if hasattr(resp, "candidates") and resp.candidates:
+                    for candidate in resp.candidates:
+                        if hasattr(candidate, "content") and candidate.content:
+                            for part in candidate.content.parts:
+                                if hasattr(part, "function_call") and part.function_call:
+                                    gemini_tool_calls.append(part.function_call)
+                                elif hasattr(part, "text") and part.text:
+                                    text_parts.append(part.text)
+                
+                assistant_text = "".join(text_parts)
+                if assistant_text:
+                    aggregated_text.append(assistant_text)
+                
+                # Append assistant response
+                self.conversation_history.append(ConversationMessage(
+                    role="assistant",
+                    content=assistant_text,
+                    tool_calls=gemini_tool_calls if gemini_tool_calls else None
+                ))
+                
+                if not gemini_tool_calls:
+                    break
+                    
+                # Execute tools
+                for fc in gemini_tool_calls:
+                    name = fc.name
+                    params = {}
+                    if hasattr(fc, "args"):
+                        for key, value in fc.args.items():
+                            if hasattr(value, "string_value"):
+                                params[key] = value.string_value
+                            elif hasattr(value, "list_value"):
+                                # Simplify list extraction
+                                params[key] = [v.string_value for v in value.list_value.values if hasattr(v, "string_value")]
+                            else:
+                                params[key] = value
+
+                    result = self.execute_tool(name, params)
+                    
+                    all_tool_executions.append({
+                        "name": name,
+                        "parameters": params,
+                        "result": result
+                    })
+                    
+                    # Append tool result
+                    # For Gemini, we store it as 'tool' role in our abstract history,
+                    # but map it to 'function' role in message construction above.
+                    self.conversation_history.append(ConversationMessage(
+                        role="tool",
+                        content=json.dumps(result, ensure_ascii=False),
+                        name=name
+                    ))
+
+        return {"assistant_text": "\n\n".join(aggregated_text), "tools_executed": all_tool_executions}
 
     def add_file_to_context(self, file_path: str):
         """Add a file or directory to the conversation context."""

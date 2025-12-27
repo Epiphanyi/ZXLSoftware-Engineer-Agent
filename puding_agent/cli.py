@@ -53,8 +53,12 @@ def main():
                 continue
             
             # Process user input
-            with console.status("[bold green]Thinking...[/bold green]", spinner="dots"):
-                response = engineer.respond_once(user_input)
+            with console.status("[bold green]Thinking...[/bold green]", spinner="dots") as status:
+                def loop_callback(count):
+                    if count > 1:
+                        status.update(f"[bold green]Thinking... (Reflection Cycle {count})[/bold green]")
+                
+                response = engineer.respond_once(user_input, on_loop_start=loop_callback)
             
             if "error" in response:
                 console.print(Panel(f"[red]Error: {response['error']}[/red]", title="Error"))
